@@ -1,0 +1,24 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "schedule": [
+    "before 4am"
+  ],
+  "labels": [
+    "dependencies"
+  ],
+  "packageRules": [
+    {
+      "description": "Auto-merge github actions updates",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "automerge": true
+    }
+  ],
+  "postUpdateOptions": [
+    "gomodTidy"
+  ]
+}
