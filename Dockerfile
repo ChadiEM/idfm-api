@@ -6,17 +6,14 @@ COPY go.mod ./
 COPY go.sum ./
 RUN go mod download
 
-COPY cmd ./cmd
-COPY pkg ./pkg
+COPY . .
 
-RUN go build -o idfm /app/cmd/idfm
+RUN CGO_ENABLED=0 go build -o idfm /app/cmd/idfm
 
-FROM alpine:3.21.3
+FROM gcr.io/distroless/static-debian12
 
-WORKDIR /
+COPY --from=build /app/idfm /
 
-COPY --from=build /app/idfm .
+USER nonroot
 
-USER nobody
-
-ENTRYPOINT [ "/idfm" ]
+ENTRYPOINT ["/idfm"]
