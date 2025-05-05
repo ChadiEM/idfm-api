@@ -15,7 +15,7 @@ import (
 func ReadCSV(url string, processor func([]string, map[string]int) (bool, error)) error {
 	// Use a client with timeout to prevent hanging on slow responses
 	client := &http.Client{
-		Timeout: 30 * time.Second,
+		Timeout: 1 * time.Minute,
 	}
 
 	req, err := http.NewRequest("GET", url, nil)
