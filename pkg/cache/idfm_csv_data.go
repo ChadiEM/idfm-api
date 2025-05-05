@@ -43,7 +43,7 @@ var (
 func InitializeCaches() {
 	log.Println("Preloading CSV data...")
 	if err := updateCSVCache(); err != nil {
-		log.Printf("Error preloading CSV from %v", err)
+		log.Fatalf("Error preloading CSV: %v", err)
 	}
 	log.Println("CSV data preloading complete")
 

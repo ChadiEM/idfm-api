@@ -35,6 +35,13 @@ func main() {
 
 	r.Use(rateLimiter)
 
+	// Health check endpoint
+	r.GET("/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"status": "healthy",
+		})
+	})
+
 	r.GET("/api/idfm/lines/:type/:id", handlers.IDFMLineHandler())
 	r.GET("/api/idfm/timings/:type/:id/:stop/:dir", handlers.IDFMTimeHandler())
 
