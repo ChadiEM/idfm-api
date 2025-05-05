@@ -194,7 +194,9 @@ func FindResults(entries []map[string]interface{}, transport types.Transport, li
 			})
 
 			// Update cache
+			cache.StopIdForDirectionCacheLock.Lock()
 			cache.StopIdForDirectionCache[request.RouteID+"-"+request.StopName+"-"+request.Direction] = stopID
+			cache.StopIdForDirectionCacheLock.Unlock()
 		}
 	}
 

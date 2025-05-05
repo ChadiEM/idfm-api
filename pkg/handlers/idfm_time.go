@@ -34,7 +34,9 @@ func IDFMTimeHandler() gin.HandlerFunc {
 				return
 			}
 			lineID = resLineId
+			cache.TypeAndNumberToLineNameCacheLock.Lock()
 			cache.TypeAndNumberToLineNameCache[lineCacheKey] = resLineId
+			cache.TypeAndNumberToLineNameCacheLock.Unlock()
 		}
 
 		stopCacheKey := lineID + "-" + stopName + "-" + dir
