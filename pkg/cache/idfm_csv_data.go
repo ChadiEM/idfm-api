@@ -8,10 +8,12 @@ import (
 	"time"
 )
 
-type LinesCache struct {
-	Data       []LineCacheData
-	LastUpdate time.Time    // Last update timestamp
-	mutex      sync.RWMutex // Lock for concurrent access
+// Cache Generic cache structure that can hold any type of data
+type Cache[T any] struct {
+	Data       []T
+	LastUpdate time.Time     // Last update timestamp
+	FetchTime  time.Duration // Time it took to fetch the cache
+	mutex      sync.RWMutex  // Lock for concurrent access
 }
 
 type LineCacheData struct {
@@ -19,12 +21,6 @@ type LineCacheData struct {
 	TransportMode string
 	ShortNameLine string
 	OperatorName  string
-}
-
-type StopsCache struct {
-	Data       []StopCacheData
-	LastUpdate time.Time    // Last update timestamp
-	mutex      sync.RWMutex // Lock for concurrent access
 }
 
 type StopCacheData struct {
@@ -35,8 +31,8 @@ type StopCacheData struct {
 
 // Global map of cached CSV data
 var (
-	lineCache = &LinesCache{}
-	stopCache = &StopsCache{}
+	lineCache = &Cache[LineCacheData]{}
+	stopCache = &Cache[StopCacheData]{}
 )
 
 // InitializeCaches preloads all CSV files used by the application
@@ -67,6 +63,7 @@ func updateCSVCache() error {
 func updateLineData() error {
 	log.Printf("Updating CSV cache for lines")
 
+	start := time.Now()
 	lineData := make([]LineCacheData, 0)
 
 	err := data.ReadCSV("https://data.iledefrance-mobilites.fr/explore/dataset/referentiel-des-lignes/download/?format=csv&timezone=Europe/Paris&lang=fr&use_labels_for_header=true&csv_separator=%3B",
@@ -90,6 +87,7 @@ func updateLineData() error {
 
 	lineCache.Data = lineData
 	lineCache.LastUpdate = time.Now()
+	lineCache.FetchTime = time.Since(start)
 
 	log.Printf("CSV cache updated (%d rows)", len(lineData))
 	return nil
@@ -98,6 +96,7 @@ func updateLineData() error {
 func updateStopData() error {
 	log.Printf("Updating CSV cache for stops")
 
+	start := time.Now()
 	stopData := make([]StopCacheData, 0)
 
 	err := data.ReadCSV("https://data.iledefrance-mobilites.fr/explore/dataset/arrets-lignes/download/?format=csv&timezone=Europe/Berlin&lang=fr&use_labels_for_header=true&csv_separator=%3B",
@@ -120,6 +119,7 @@ func updateStopData() error {
 
 	stopCache.Data = stopData
 	stopCache.LastUpdate = time.Now()
+	stopCache.FetchTime = time.Since(start)
 
 	log.Printf("CSV cache updated (%d rows)", len(stopData))
 	return nil
@@ -170,4 +170,18 @@ func ProcessLineCache(processor func(data LineCacheData) (bool, error)) error {
 // ProcessStopCache processes data from the CSV cache
 func ProcessStopCache(processor func(data StopCacheData) (bool, error)) error {
 	return processCacheData(stopCache.Data, &stopCache.mutex, processor)
+}
+
+// GetLinesCacheStats returns the last update time of the lines cache
+func GetLinesCacheStats() (time.Time, int, time.Duration) {
+	lineCache.mutex.RLock()
+	defer lineCache.mutex.RUnlock()
+	return lineCache.LastUpdate, len(lineCache.Data), lineCache.FetchTime
+}
+
+// GetStopsCacheStats returns the last update time of the stops cache
+func GetStopsCacheStats() (time.Time, int, time.Duration) {
+	stopCache.mutex.RLock()
+	defer stopCache.mutex.RUnlock()
+	return stopCache.LastUpdate, len(stopCache.Data), stopCache.FetchTime
 }
