@@ -10,14 +10,14 @@ import (
 )
 
 // GetAllTimings retrieves all timings for the given stop IDs
-func GetAllTimings(stopIDs []string) ([]map[string]interface{}, error) {
+func GetAllTimings(lineID string, stopIDs []string) ([]map[string]interface{}, error) {
 	var allTimings []map[string]interface{}
 
 	for _, stopID := range stopIDs {
-		if data, err := requestInfo(stopID); err == nil {
+		if data, err := requestInfo(lineID, stopID); err == nil {
 			allTimings = append(allTimings, data...)
 		} else {
-			log.Printf("ERROR: IDFM: Unable to read timings for %s: %v", stopID, err)
+			log.Printf("ERROR: IDFM: Unable to read timings for line %s, stop %s: %v", lineID, stopID, err)
 			return nil, err
 		}
 	}
@@ -26,8 +26,8 @@ func GetAllTimings(stopIDs []string) ([]map[string]interface{}, error) {
 }
 
 // requestInfo fetches information for a specific stop ID
-func requestInfo(stopID string) ([]map[string]interface{}, error) {
-	urlStr := fmt.Sprintf("https://prim.iledefrance-mobilites.fr/marketplace/stop-monitoring?MonitoringRef=STIF:StopPoint:Q:%s:", stopID)
+func requestInfo(lineID string, stopID string) ([]map[string]interface{}, error) {
+	urlStr := fmt.Sprintf("https://prim.iledefrance-mobilites.fr/marketplace/stop-monitoring?MonitoringRef=STIF:StopPoint:Q:%s:&LineRef=STIF:Line::%s:", stopID, lineID)
 
 	client := &http.Client{
 		Timeout: 5 * time.Second,
