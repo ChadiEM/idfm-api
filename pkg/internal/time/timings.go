@@ -6,32 +6,22 @@ import (
 	"idfm/pkg/env"
 	"log"
 	"net/http"
-	"sync"
 	"time"
 )
 
 // GetAllTimings retrieves all timings for the given stop IDs
 func GetAllTimings(stopIDs []string) ([]map[string]interface{}, error) {
 	var allTimings []map[string]interface{}
-	var mutex sync.Mutex
-	var wg sync.WaitGroup
 
 	for _, stopID := range stopIDs {
-		wg.Add(1)
-		go func(sid string) {
-			defer wg.Done()
-
-			if data, err := requestInfo(sid); err == nil {
-				mutex.Lock()
-				allTimings = append(allTimings, data...)
-				mutex.Unlock()
-			} else {
-				log.Printf("ERROR: IDFM: Unable to read timings for %s: %v", sid, err)
-			}
-		}(stopID)
+		if data, err := requestInfo(stopID); err == nil {
+			allTimings = append(allTimings, data...)
+		} else {
+			log.Printf("ERROR: IDFM: Unable to read timings for %s: %v", stopID, err)
+			return nil, err
+		}
 	}
 
-	wg.Wait()
 	return allTimings, nil
 }
 

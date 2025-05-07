@@ -7,7 +7,6 @@ import (
 	"idfm/pkg/internal/time"
 	"idfm/pkg/internal/types"
 	"idfm/pkg/internal/utils"
-	"log"
 )
 
 func IDFMTimeHandler() gin.HandlerFunc {
@@ -54,7 +53,8 @@ func IDFMTimeHandler() gin.HandlerFunc {
 
 		allTimings, err := time.GetAllTimings(stopIDs)
 		if err != nil {
-			log.Printf("Error getting timings: %v", err)
+			c.JSON(500, gin.H{"error": err.Error()})
+			return
 		}
 
 		transport := types.Transport{Type: transportType, Number: transportId, Stop: stopName, Destination: dir}
