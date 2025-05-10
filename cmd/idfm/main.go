@@ -66,8 +66,12 @@ func main() {
 		})
 	})
 
-	r.GET("/api/idfm/lines/:type/:id", handlers.IDFMLineHandler())
-	r.GET("/api/idfm/timings/:type/:id/:stop/:dir", handlers.IDFMTimeHandler())
+	// API group
+	idfm := r.Group("/api/idfm")
+	{
+		idfm.GET("/lines/:type/:id", handlers.IDFMLineHandler())
+		idfm.GET("/timings/:type/:id/:stop/:dir", handlers.IDFMTimeHandler())
+	}
 
 	// Start updating cache metrics in the background
 	go updateCacheMetrics()
