@@ -1,5 +1,7 @@
 # Île-de-France Mobilités API (RATP, SNCF)
 
+A simple, minimal, and easy-to-understand API to get the timings of Île-de-France Mobilités public transport.
+
 ## Build
 
 `go build -o idfm ./cmd/idfm`
