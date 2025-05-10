@@ -6,6 +6,10 @@ A simple, minimal, and easy-to-understand API to get the timings of Île-de-Fran
 
 `go build -o idfm ./cmd/idfm`
 
+## API key
+
+The API key can be retrieved from [here](https://prim.iledefrance-mobilites.fr/fr/mes-jetons-authentification).
+
 ## Start
 
 To start, `IDFM_API_KEY=<your-api-key> ./idfm`

@@ -1,24 +1,27 @@
 package handlers
 
 import (
-	"idfm/pkg/internal/types"
+	"errors"
+	"fmt"
+	"github.com/gin-gonic/gin"
 	"idfm/pkg/internal/utils"
+	"net/http"
+	"slices"
 )
 
-func parseTransportType(transportType string) (types.TransportType, error) {
-	var t types.TransportType
-
-	if transportType == "bus" {
-		t = utils.BUS
-	} else if transportType == "metro" {
-		t = utils.METRO
-	} else if transportType == "rer" {
-		t = utils.RER
-	} else if transportType == "tram" {
-		t = utils.TRAM
-	} else {
-		return t, &utils.ConfigurationError{Message: "Invalid transport type " + transportType}
+func validateTransportType(transportType string) (string, error) {
+	if slices.Contains(utils.AllowedTransportTypes, transportType) {
+		return transportType, nil
 	}
+	return "", &utils.RequestError{Message: fmt.Sprintf("Invalid transport type: %s. Valid types: %s", transportType, utils.AllowedTransportTypes)}
+}
 
-	return t, nil
+func handleGinError(c *gin.Context, err error) {
+	var requestError *utils.RequestError
+	if errors.As(err, &requestError) {
+		c.JSON(http.StatusBadRequest, gin.H{"request error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	return
 }

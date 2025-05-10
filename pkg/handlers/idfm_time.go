@@ -2,64 +2,49 @@ package handlers
 
 import (
 	"github.com/gin-gonic/gin"
-	"idfm/pkg/cache"
 	"idfm/pkg/internal/line"
+	"idfm/pkg/internal/stop"
 	"idfm/pkg/internal/time"
-	"idfm/pkg/internal/types"
-	"idfm/pkg/internal/utils"
+	"net/http"
 )
 
 func IDFMTimeHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		transportType, err := parseTransportType(c.Param("type"))
+		transportType, err := validateTransportType(c.Param("type"))
 		if err != nil {
-			c.JSON(500, gin.H{"error": err.Error()})
+			handleGinError(c, err)
 			return
 		}
 		transportId := c.Param("id")
 		stopName := c.Param("stop")
 		dir := c.Param("dir")
 
-		lineRequest := types.Line{Type: transportType, ID: transportId}
-
-		lineCacheKey := transportType.API + "-" + transportId
-		var lineID string
-		if cache.TypeAndNumberToLineNameCache[lineCacheKey] != "" {
-			lineID = cache.TypeAndNumberToLineNameCache[lineCacheKey]
-		} else {
-			resLineId, err := line.GetLineDetails(lineRequest)
-			if err != nil {
-				c.JSON(500, gin.H{"error": err.Error()})
-				return
-			}
-			lineID = resLineId
-			cache.TypeAndNumberToLineNameCacheLock.Lock()
-			cache.TypeAndNumberToLineNameCache[lineCacheKey] = resLineId
-			cache.TypeAndNumberToLineNameCacheLock.Unlock()
-		}
-
-		stopCacheKey := lineID + "-" + stopName + "-" + dir
-		var stopIDs []string
-		if cachedStopIDs, exists := cache.StopIdForDirectionCache[stopCacheKey]; exists {
-			stopIDs = []string{cachedStopIDs}
-		} else {
-			curStopIDs, err := utils.GetStopIDs(lineID, stopName)
-			if err != nil {
-				c.JSON(500, gin.H{"error": err.Error()})
-				return
-			}
-			stopIDs = curStopIDs
-		}
-
-		allTimings, err := time.GetAllTimings(lineID, stopIDs)
+		lineID, err := line.GetLineDetailsOrCache(transportType, transportId)
 		if err != nil {
-			c.JSON(500, gin.H{"error": err.Error()})
+			handleGinError(c, err)
 			return
 		}
 
-		transport := types.Transport{Type: transportType, Number: transportId, Stop: stopName, Destination: dir}
-		results := utils.FindResults(allTimings, transport, lineID, stopIDs)
+		var stopIDs []string
+		stopID, exists := stop.GetCachedStopIDsForDirection(lineID, stopName, dir)
+		if exists {
+			stopIDs = []string{stopID}
+		} else {
+			stopIDs, err = stop.GetStopIDs(lineID, stopName)
+			if err != nil {
+				handleGinError(c, err)
+				return
+			}
+		}
 
-		c.JSON(200, results)
+		allTimings, err := time.GetAllTimings(stopIDs)
+		if err != nil {
+			handleGinError(c, err)
+			return
+		}
+
+		results := time.FindResults(allTimings, lineID, stopIDs, stopName, dir)
+
+		c.JSON(http.StatusOK, results)
 	}
 }

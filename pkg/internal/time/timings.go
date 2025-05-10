@@ -4,20 +4,59 @@ import (
 	"encoding/json"
 	"fmt"
 	"idfm/pkg/env"
-	"log"
 	"net/http"
+	"net/url"
 	"time"
 )
 
-// GetAllTimings retrieves all timings for the given stop IDs
-func GetAllTimings(lineID string, stopIDs []string) ([]map[string]interface{}, error) {
-	var allTimings []map[string]interface{}
+const (
+	stopMonitoringEndpoint = "https://prim.iledefrance-mobilites.fr/marketplace/stop-monitoring"
+)
+
+// StopMonitoringAPIResponse represents the structure of the API response
+type StopMonitoringAPIResponse struct {
+	Siri struct {
+		ServiceDelivery struct {
+			StopMonitoringDelivery []struct {
+				MonitoredStopVisit []MonitoredStopVisit `json:"MonitoredStopVisit"`
+			} `json:"StopMonitoringDelivery"`
+		} `json:"ServiceDelivery"`
+	} `json:"Siri"`
+}
+
+type ValueWrapper struct {
+	Value string `json:"value"`
+}
+
+type MonitoredCall struct {
+	VehicleAtStop         bool   `json:"VehicleAtStop"`
+	ExpectedDepartureTime string `json:"ExpectedDepartureTime"`
+}
+
+type DestinationName struct {
+	Value string `json:"value"`
+}
+
+type MonitoredVehicleJourney struct {
+	LineRef         ValueWrapper      `json:"LineRef"`
+	DirectionRef    ValueWrapper      `json:"DirectionRef"`
+	DestinationName []DestinationName `json:"DestinationName"`
+	MonitoredCall   MonitoredCall     `json:"MonitoredCall"`
+}
+
+type MonitoredStopVisit struct {
+	MonitoringRef           ValueWrapper            `json:"MonitoringRef"`
+	MonitoredVehicleJourney MonitoredVehicleJourney `json:"MonitoredVehicleJourney"`
+}
+
+// GetAllTimings retrieves all timings for the given stop IDs with typed data
+func GetAllTimings(stopIDs []string) ([]MonitoredStopVisit, error) {
+	var allTimings []MonitoredStopVisit
 
 	for _, stopID := range stopIDs {
-		if data, err := requestInfo(lineID, stopID); err == nil {
+		if data, err := requestInfo(stopID); err == nil {
 			allTimings = append(allTimings, data...)
 		} else {
-			log.Printf("ERROR: IDFM: Unable to read timings for line %s, stop %s: %v", lineID, stopID, err)
 			return nil, err
 		}
 	}
@@ -26,8 +65,9 @@ func GetAllTimings(lineID string, stopIDs []string) ([]map[string]interface{}, e
 }
 
 // requestInfo fetches information for a specific stop ID
-func requestInfo(lineID string, stopID string) ([]map[string]interface{}, error) {
-	urlStr := fmt.Sprintf("https://prim.iledefrance-mobilites.fr/marketplace/stop-monitoring?MonitoringRef=STIF:StopPoint:Q:%s:&LineRef=STIF:Line::%s:", stopID, lineID)
+func requestInfo(stopID string) ([]MonitoredStopVisit, error) {
+	params := url.Values{}
+	params.Add("MonitoringRef", fmt.Sprintf("STIF:StopPoint:Q:%s:", stopID))
 
 	client := &http.Client{
 		Timeout: 5 * time.Second,
@@ -36,7 +76,7 @@ func requestInfo(lineID string, stopID string) ([]map[string]interface{}, error)
 		},
 	}
 
-	req, err := http.NewRequest("GET", urlStr, nil)
+	req, err := http.NewRequest("GET", stopMonitoringEndpoint+"?"+params.Encode(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -54,16 +94,7 @@ func requestInfo(lineID string, stopID string) ([]map[string]interface{}, error)
 		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 
-	var result struct {
-		Siri struct {
-			ServiceDelivery struct {
-				StopMonitoringDelivery []struct {
-					MonitoredStopVisit []map[string]interface{} `json:"MonitoredStopVisit"`
-				} `json:"StopMonitoringDelivery"`
-			} `json:"ServiceDelivery"`
-		} `json:"Siri"`
-	}
-
+	var result StopMonitoringAPIResponse
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, err
 	}

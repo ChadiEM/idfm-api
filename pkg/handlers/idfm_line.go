@@ -3,26 +3,24 @@ package handlers
 import (
 	"github.com/gin-gonic/gin"
 	"idfm/pkg/internal/line"
-	"idfm/pkg/internal/types"
+	"net/http"
 )
 
 func IDFMLineHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		transportType, err := parseTransportType(c.Param("type"))
+		transportType, err := validateTransportType(c.Param("type"))
 		if err != nil {
-			c.JSON(500, gin.H{"error": err.Error()})
+			handleGinError(c, err)
 			return
 		}
 		transportId := c.Param("id")
 
-		lineRequest := types.Line{Type: transportType, ID: transportId}
-
-		lineId, err := line.GetLineDetails(lineRequest)
+		lineID, err := line.GetLineDetailsOrCache(transportType, transportId)
 		if err != nil {
-			c.JSON(500, gin.H{"error": err.Error()})
+			handleGinError(c, err)
 			return
 		}
 
-		c.JSON(200, gin.H{"id": lineId})
+		c.JSON(http.StatusOK, gin.H{"id": lineID})
 	}
 }
