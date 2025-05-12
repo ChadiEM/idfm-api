@@ -51,8 +51,13 @@ func FindResults(entries []MonitoredStopVisit, lineId string, stopIds []string, 
 			stopIDFull := entry.MonitoringRef.Value
 			stopID := utils.OnlyNumberRegex.FindString(stopIDFull)
 
-			if stopID != requestedStopId {
-				continue
+			// there's a bug where the returned stop id is different from the requested one...
+			// workaround this bug by assuming it is the same if the number of requested stops is 1
+			// example: /api/idfm/timings/rail/A/Auber/A
+			if len(stopIds) > 1 {
+				if stopID != requestedStopId {
+					continue
+				}
 			}
 
 			// Get destination name
