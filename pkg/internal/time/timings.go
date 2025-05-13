@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"idfm/pkg/env"
+	"idfm/pkg/internal/utils"
 	"net/http"
 	"net/url"
 	"time"
@@ -15,42 +16,11 @@ const (
 
 // StopMonitoringAPIResponse represents the structure of the API response
 type StopMonitoringAPIResponse struct {
-	Siri struct {
-		ServiceDelivery struct {
-			StopMonitoringDelivery []struct {
-				MonitoredStopVisit []MonitoredStopVisit `json:"MonitoredStopVisit"`
-			} `json:"StopMonitoringDelivery"`
-		} `json:"ServiceDelivery"`
-	} `json:"Siri"`
-}
-
-type ValueWrapper struct {
-	Value string `json:"value"`
-}
-
-type MonitoredCall struct {
-	VehicleAtStop         bool   `json:"VehicleAtStop"`
-	ExpectedDepartureTime string `json:"ExpectedDepartureTime"`
-}
-
-type DestinationName struct {
-	Value string `json:"value"`
-}
-
-type MonitoredVehicleJourney struct {
-	LineRef         ValueWrapper      `json:"LineRef"`
-	DirectionRef    ValueWrapper      `json:"DirectionRef"`
-	DestinationName []DestinationName `json:"DestinationName"`
-	MonitoredCall   MonitoredCall     `json:"MonitoredCall"`
-}
-
-type MonitoredStopVisit struct {
-	MonitoringRef           ValueWrapper            `json:"MonitoringRef"`
-	MonitoredVehicleJourney MonitoredVehicleJourney `json:"MonitoredVehicleJourney"`
+	Siri Siri `json:"Siri"`
 }
 
 // GetAllTimings retrieves all timings for the given stop IDs with typed data
-func GetAllTimings(stopIDs []string) ([]MonitoredStopVisit, error) {
+func GetAllTimings(stopIDs []utils.StopId) ([]MonitoredStopVisit, error) {
 	var allTimings []MonitoredStopVisit
 
 	for _, stopID := range stopIDs {
@@ -65,9 +35,15 @@ func GetAllTimings(stopIDs []string) ([]MonitoredStopVisit, error) {
 }
 
 // requestInfo fetches information for a specific stop ID
-func requestInfo(stopID string) ([]MonitoredStopVisit, error) {
+func requestInfo(stopID utils.StopId) ([]MonitoredStopVisit, error) {
 	params := url.Values{}
-	params.Add("MonitoringRef", fmt.Sprintf("STIF:StopPoint:Q:%s:", stopID))
+	if stopID.Type == utils.Area {
+		params.Add("MonitoringRef", fmt.Sprintf("STIF:StopArea:SP:%s:", stopID.Id))
+	} else if stopID.Type == utils.Point {
+		params.Add("MonitoringRef", fmt.Sprintf("STIF:StopPoint:Q:%s:", stopID.Id))
+	} else {
+		return nil, fmt.Errorf("invalid stop ID type: %s", stopID.Type)
+	}
 
 	client := &http.Client{
 		Timeout: 5 * time.Second,

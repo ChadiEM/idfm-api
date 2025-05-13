@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 )
 
 const (
@@ -29,7 +30,7 @@ type stopNamesAPIResponse struct {
 }
 
 // GetCachedStopIDsForDirection retrieves stop IDs for the given stop and direction from the cache
-func GetCachedStopIDsForDirection(lineId string, stopName string, direction string) (string, bool) {
+func GetCachedStopIDsForDirection(lineId string, stopName string, direction string) (utils.StopId, bool) {
 	stopCacheKey := lineId + "-" + stopName + "-" + direction
 
 	cacheItem := data.StopIdForDirectionCache.Get(stopCacheKey)
@@ -37,21 +38,35 @@ func GetCachedStopIDsForDirection(lineId string, stopName string, direction stri
 		return cacheItem.Value(), true
 	}
 
-	return "", false
+	return utils.StopId{}, false
 }
 
 // GetStopIDs retrieves stop IDs for the given stop from IDFM API
-func GetStopIDs(lineId string, stopName string) ([]string, error) {
+func GetStopIDs(lineId string, stopName string) ([]utils.StopId, error) {
 	stopIdsResponse, err := requestStopIds(lineId, stopName)
 	if err != nil {
 		return nil, err
 	}
 
 	if stopIdsResponse.TotalCount > 0 {
-		stopIDs := make([]string, stopIdsResponse.TotalCount)
+		stopIDs := make([]utils.StopId, stopIdsResponse.TotalCount)
 
 		for index, result := range stopIdsResponse.Results {
-			stopIDs[index] = utils.OnlyNumberRegex.FindString(result.StopID)
+			stopId := result.StopID
+			numericPart := utils.OnlyNumberRegex.FindString(stopId)
+
+			if strings.Contains(stopId, "monomodalStopPlace") {
+				// monomodal means that we should query the area instead of the stop...
+				stopIDs[index] = utils.StopId{
+					Id:   numericPart,
+					Type: utils.Area,
+				}
+			} else {
+				stopIDs[index] = utils.StopId{
+					Id:   numericPart,
+					Type: utils.Point,
+				}
+			}
 		}
 
 		return stopIDs, nil
@@ -59,10 +74,10 @@ func GetStopIDs(lineId string, stopName string) ([]string, error) {
 		// Help the user by providing stop names
 		allStopNamesResponse, err := requestAllStopNames(lineId)
 		if err != nil {
-			return []string{}, err
+			return nil, err
 		}
 
-		stopNames := make([]string, allStopNamesResponse.TotalCount)
+		stopNames := make([]string, len(allStopNamesResponse.Results))
 
 		for index, result := range allStopNamesResponse.Results {
 			stopNames[index] = result.StopName
@@ -70,7 +85,7 @@ func GetStopIDs(lineId string, stopName string) ([]string, error) {
 
 		marshal, err := json.Marshal(stopNames)
 		if err != nil {
-			return []string{}, err
+			return nil, err
 		}
 		return nil, &utils.RequestError{Message: fmt.Sprintf("Stop \"%s\" not found. Available stops: %s", stopName, marshal)}
 	}
@@ -119,7 +134,7 @@ func requestAllStopNames(lineId string) (stopNamesAPIResponse, error) {
 
 	var apiResp stopNamesAPIResponse
 	if err := json.Unmarshal(body, &apiResp); err != nil {
-		return stopNamesAPIResponse{}, err
+		return apiResp, err
 	}
 	return apiResp, nil
 }

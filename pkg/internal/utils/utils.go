@@ -16,3 +16,24 @@ type RequestError struct {
 func (e *RequestError) Error() string {
 	return e.Message
 }
+
+type StopType int
+
+const (
+	Point StopType = iota
+	Area
+)
+
+var stateName = map[StopType]string{
+	Point: "point",
+	Area:  "area",
+}
+
+func (stopType StopType) String() string {
+	return stateName[stopType]
+}
+
+type StopId struct {
+	Id   string
+	Type StopType
+}

@@ -12,12 +12,14 @@ import (
 
 // Result represents a transport timing result
 type Result struct {
-	Dest string `json:"dest"`
-	Time string `json:"time"`
+	Dest     string `json:"dest"`
+	Time     string `json:"time"`
+	Status   string `json:"status"`
+	Platform string `json:"platform,omitempty"`
 }
 
 // FindResults processes entries and requests to find matching results
-func FindResults(entries []MonitoredStopVisit, lineId string, stopIds []string, stopName string, destination string) []Result {
+func FindResults(entries []MonitoredStopVisit, lineId string, stopIds []utils.StopId, stopName string, destination string, platform string) []Result {
 	results := make([]Result, 0)
 
 	for _, requestedStopId := range stopIds {
@@ -25,6 +27,10 @@ func FindResults(entries []MonitoredStopVisit, lineId string, stopIds []string, 
 			// Check LineRef
 			lineRefValue := entry.MonitoredVehicleJourney.LineRef.Value
 			if lineRefValue != fmt.Sprintf("STIF:Line::%s:", lineId) {
+				continue
+			}
+
+			if platform != "" && platform != entry.MonitoredVehicleJourney.MonitoredCall.ArrivalPlatformName.Value {
 				continue
 			}
 
@@ -43,7 +49,7 @@ func FindResults(entries []MonitoredStopVisit, lineId string, stopIds []string, 
 				continue
 			}
 
-			if destination != dir {
+			if destination != "" && destination != dir {
 				continue
 			}
 
@@ -55,40 +61,33 @@ func FindResults(entries []MonitoredStopVisit, lineId string, stopIds []string, 
 			// workaround this bug by assuming it is the same if the number of requested stops is 1
 			// example: /api/idfm/timings/rail/A/Auber/A
 			if len(stopIds) > 1 {
-				if stopID != requestedStopId {
+				if stopID != requestedStopId.Id {
 					continue
 				}
 			}
-
-			// Get destination name
-			if len(entry.MonitoredVehicleJourney.DestinationName) == 0 {
-				continue
-			}
-			destName := entry.MonitoredVehicleJourney.DestinationName[0].Value
 
 			// Calculate remaining time
 			var remainingTime string
 			if entry.MonitoredVehicleJourney.MonitoredCall.VehicleAtStop {
-				remainingTime = "Arrêt"
+				remainingTime = "onStop"
 			} else {
-				expectedTime := entry.MonitoredVehicleJourney.MonitoredCall.ExpectedDepartureTime
-				upcoming, err := time.Parse(time.RFC3339, expectedTime)
-				if err != nil {
-					continue
-				}
-
+				upcoming := entry.MonitoredVehicleJourney.MonitoredCall.ExpectedDepartureTime
 				remaining := int(math.Max(0, math.Floor(upcoming.Sub(time.Now()).Minutes())))
 				remainingTime = fmt.Sprintf("%d mn", remaining)
 			}
 
 			// Store result
 			results = append(results, Result{
-				Dest: destName,
-				Time: remainingTime,
+				Dest:     entry.MonitoredVehicleJourney.DestinationName[0].Value,
+				Time:     remainingTime,
+				Status:   entry.MonitoredVehicleJourney.MonitoredCall.DepartureStatus,
+				Platform: entry.MonitoredVehicleJourney.MonitoredCall.ArrivalPlatformName.Value,
 			})
 
 			// Update cache
-			data.StopIdForDirectionCache.Set(lineId+"-"+stopName+"-"+destination, requestedStopId, ttlcache.DefaultTTL)
+			if destination == "" {
+				data.StopIdForDirectionCache.Set(lineId+"-"+stopName+"-"+destination, requestedStopId, ttlcache.DefaultTTL)
+			}
 		}
 	}
 

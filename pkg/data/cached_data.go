@@ -4,6 +4,7 @@ import (
 	"github.com/jellydator/ttlcache/v3"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+	"idfm/pkg/internal/utils"
 	"time"
 )
 
@@ -12,9 +13,9 @@ var (
 		ttlcache.WithTTL[string, string](12*time.Hour),
 		ttlcache.WithCapacity[string, string](100),
 	)
-	StopIdForDirectionCache = ttlcache.New[string, string](
-		ttlcache.WithTTL[string, string](12*time.Hour),
-		ttlcache.WithCapacity[string, string](1000),
+	StopIdForDirectionCache = ttlcache.New[string, utils.StopId](
+		ttlcache.WithTTL[string, utils.StopId](12*time.Hour),
+		ttlcache.WithCapacity[string, utils.StopId](1000),
 	)
 )
 

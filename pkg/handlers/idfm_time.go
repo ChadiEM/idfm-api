@@ -5,6 +5,7 @@ import (
 	"idfm/pkg/internal/line"
 	"idfm/pkg/internal/stop"
 	"idfm/pkg/internal/time"
+	"idfm/pkg/internal/utils"
 	"net/http"
 )
 
@@ -17,7 +18,9 @@ func IDFMTimeHandler() gin.HandlerFunc {
 		}
 		transportId := c.Param("id")
 		stopName := c.Param("stop")
-		dir := c.Param("dir")
+
+		dir := c.Query("direction")
+		platform := c.Query("platform")
 
 		lineID, err := line.GetLineDetailsOrCache(transportType, transportId)
 		if err != nil {
@@ -25,10 +28,10 @@ func IDFMTimeHandler() gin.HandlerFunc {
 			return
 		}
 
-		var stopIDs []string
+		var stopIDs []utils.StopId
 		stopID, exists := stop.GetCachedStopIDsForDirection(lineID, stopName, dir)
 		if exists {
-			stopIDs = []string{stopID}
+			stopIDs = []utils.StopId{stopID}
 		} else {
 			stopIDs, err = stop.GetStopIDs(lineID, stopName)
 			if err != nil {
@@ -43,7 +46,7 @@ func IDFMTimeHandler() gin.HandlerFunc {
 			return
 		}
 
-		results := time.FindResults(allTimings, lineID, stopIDs, stopName, dir)
+		results := time.FindResults(allTimings, lineID, stopIDs, stopName, dir, platform)
 
 		c.JSON(http.StatusOK, results)
 	}

@@ -45,7 +45,7 @@ func main() {
 	idfm := r.Group("/api/idfm")
 	{
 		idfm.GET("/lines/:type/:id", handlers.IDFMLineHandler())
-		idfm.GET("/timings/:type/:id/:stop/:dir", handlers.IDFMTimeHandler())
+		idfm.GET("/timings/:type/:id/:stop", handlers.IDFMTimeHandler())
 	}
 
 	data.InitCache()
