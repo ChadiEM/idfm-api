@@ -31,7 +31,7 @@ type allLinesAPIResponse struct {
 
 // GetLineDetailsOrCache retrieves line details from the cache/API
 func GetLineDetailsOrCache(lineType string, lineId string) (string, error) {
-	lineCacheKey := lineType + "-" + lineId
+	lineCacheKey := data.LineCacheKey{LineType: lineType, LineId: lineId}
 	cacheItem := data.TypeAndNumberToLineNameCache.Get(lineCacheKey)
 	if cacheItem != nil && !cacheItem.IsExpired() {
 		return cacheItem.Value(), nil

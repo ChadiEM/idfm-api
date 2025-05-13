@@ -8,14 +8,26 @@ import (
 	"time"
 )
 
+type LineCacheKey struct {
+	LineType string
+	LineId   string
+}
+
+type StopCacheKey struct {
+	LineId    string
+	StopName  string
+	Direction string
+	Platform  string
+}
+
 var (
-	TypeAndNumberToLineNameCache = ttlcache.New[string, string](
-		ttlcache.WithTTL[string, string](12*time.Hour),
-		ttlcache.WithCapacity[string, string](100),
+	TypeAndNumberToLineNameCache = ttlcache.New[LineCacheKey, string](
+		ttlcache.WithTTL[LineCacheKey, string](12*time.Hour),
+		ttlcache.WithCapacity[LineCacheKey, string](100),
 	)
-	StopIdForDirectionCache = ttlcache.New[string, utils.StopId](
-		ttlcache.WithTTL[string, utils.StopId](12*time.Hour),
-		ttlcache.WithCapacity[string, utils.StopId](1000),
+	StopIdForDirectionCache = ttlcache.New[StopCacheKey, utils.StopId](
+		ttlcache.WithTTL[StopCacheKey, utils.StopId](12*time.Hour),
+		ttlcache.WithCapacity[StopCacheKey, utils.StopId](1000),
 	)
 )
 

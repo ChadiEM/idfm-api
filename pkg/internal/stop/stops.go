@@ -30,8 +30,13 @@ type stopNamesAPIResponse struct {
 }
 
 // GetCachedStopIDsForDirection retrieves stop IDs for the given stop and direction from the cache
-func GetCachedStopIDsForDirection(lineId string, stopName string, direction string) (utils.StopId, bool) {
-	stopCacheKey := lineId + "-" + stopName + "-" + direction
+func GetCachedStopIDsForDirection(lineId string, stopName string, direction string, platform string) (utils.StopId, bool) {
+	stopCacheKey := data.StopCacheKey{
+		LineId:    lineId,
+		StopName:  stopName,
+		Direction: direction,
+		Platform:  platform,
+	}
 
 	cacheItem := data.StopIdForDirectionCache.Get(stopCacheKey)
 	if cacheItem != nil && !cacheItem.IsExpired() {

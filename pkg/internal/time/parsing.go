@@ -85,8 +85,14 @@ func FindResults(entries []MonitoredStopVisit, lineId string, stopIds []utils.St
 			})
 
 			// Update cache
-			if destination == "" {
-				data.StopIdForDirectionCache.Set(lineId+"-"+stopName+"-"+destination, requestedStopId, ttlcache.DefaultTTL)
+			if destination != "" || platform != "" {
+				stopCacheKey := data.StopCacheKey{
+					LineId:    lineId,
+					StopName:  stopName,
+					Direction: destination,
+					Platform:  platform,
+				}
+				data.StopIdForDirectionCache.Set(stopCacheKey, requestedStopId, ttlcache.DefaultTTL)
 			}
 		}
 	}

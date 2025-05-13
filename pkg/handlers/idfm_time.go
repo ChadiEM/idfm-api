@@ -29,7 +29,7 @@ func IDFMTimeHandler() gin.HandlerFunc {
 		}
 
 		var stopIDs []utils.StopId
-		stopID, exists := stop.GetCachedStopIDsForDirection(lineID, stopName, dir)
+		stopID, exists := stop.GetCachedStopIDsForDirection(lineID, stopName, dir, platform)
 		if exists {
 			stopIDs = []utils.StopId{stopID}
 		} else {
