@@ -11,6 +11,7 @@ import (
 type LineCacheKey struct {
 	LineType string
 	LineId   string
+	Operator string
 }
 
 type StopCacheKey struct {

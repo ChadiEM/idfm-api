@@ -15,7 +15,9 @@ func IDFMLineHandler() gin.HandlerFunc {
 		}
 		transportId := c.Param("id")
 
-		lineID, err := line.GetLineDetailsOrCache(transportType, transportId)
+		operator := c.Query("operator")
+
+		lineID, err := line.GetLineDetailsOrCache(transportType, transportId, operator)
 		if err != nil {
 			handleGinError(c, err)
 			return

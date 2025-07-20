@@ -33,7 +33,7 @@ type MonitoredVehicleJourney struct {
 	LineRef                 ValueWrapper            `json:"LineRef"`
 	OperatorRef             map[string]interface{}  `json:"OperatorRef"`
 	FramedVehicleJourneyRef FramedVehicleJourneyRef `json:"FramedVehicleJourneyRef"`
-	DirectionName           []interface{}           `json:"DirectionName"`
+	DirectionName           []ValueWrapper          `json:"DirectionName"`
 	DestinationRef          ValueWrapper            `json:"DestinationRef"`
 	DestinationName         []ValueWrapper          `json:"DestinationName"`
 	VehicleJourneyName      []ValueWrapper          `json:"VehicleJourneyName"`
