@@ -19,10 +19,11 @@ func IDFMTimeHandler() gin.HandlerFunc {
 		transportId := c.Param("id")
 		stopName := c.Param("stop")
 
+		operator := c.Query("operator")
 		dir := c.Query("direction")
 		platform := c.Query("platform")
 
-		lineID, err := line.GetLineDetailsOrCache(transportType, transportId)
+		lineID, err := line.GetLineDetailsOrCache(transportType, transportId, operator)
 		if err != nil {
 			handleGinError(c, err)
 			return

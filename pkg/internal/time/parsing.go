@@ -30,6 +30,7 @@ func FindResults(entries []MonitoredStopVisit, lineId string, stopIds []utils.St
 				continue
 			}
 
+			// Check Platform
 			if platform != "" && platform != entry.MonitoredVehicleJourney.MonitoredCall.ArrivalPlatformName.Value {
 				continue
 			}
@@ -45,8 +46,10 @@ func FindResults(entries []MonitoredStopVisit, lineId string, stopIds []utils.St
 				dir = "A"
 			} else if strings.HasSuffix(dirRefValue, ":R") {
 				dir = "R"
-			} else {
-				continue
+			} else if len(entry.MonitoredVehicleJourney.DirectionName) > 0 && entry.MonitoredVehicleJourney.DirectionName[0].Value == "Aller" {
+				dir = "A"
+			} else if len(entry.MonitoredVehicleJourney.DirectionName) > 0 && entry.MonitoredVehicleJourney.DirectionName[0].Value == "Retour" {
+				dir = "R"
 			}
 
 			if destination != "" && destination != dir {
@@ -59,7 +62,7 @@ func FindResults(entries []MonitoredStopVisit, lineId string, stopIds []utils.St
 
 			// there's a bug where the returned stop id is different from the requested one...
 			// workaround this bug by assuming it is the same if the number of requested stops is 1
-			// example: /api/idfm/timings/rail/A/Auber/A
+			// example: /api/idfm/timings/rail/A/Auber?direction=A
 			if len(stopIds) > 1 {
 				if stopID != requestedStopId.Id {
 					continue

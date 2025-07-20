@@ -48,3 +48,7 @@ To start, `IDFM_API_KEY=<your-api-key> ./idfm`
 ### Metro 9, Exelmans, direction Aller (Montreuil)
 
 `curl "http://localhost:8080/api/idfm/timings/metro/9/Exelmans?direction=A"`
+
+### Bus B, Sartrouville, direction A (Rueil-Malmaison), Operator Keolis
+
+`curl http://localhost:8080/api/idfm/timings/bus/B/Gare%20de%20Sartrouville?direction=A&operator=Keolis%20Argenteuil%20Boucles%20de%20Seine`

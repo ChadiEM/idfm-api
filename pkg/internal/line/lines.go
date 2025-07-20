@@ -30,8 +30,8 @@ type allLinesAPIResponse struct {
 }
 
 // GetLineDetailsOrCache retrieves line details from the cache/API
-func GetLineDetailsOrCache(lineType string, lineId string) (string, error) {
-	lineCacheKey := data.LineCacheKey{LineType: lineType, LineId: lineId}
+func GetLineDetailsOrCache(lineType string, lineId string, operator string) (string, error) {
+	lineCacheKey := data.LineCacheKey{LineType: lineType, LineId: lineId, Operator: operator}
 	cacheItem := data.TypeAndNumberToLineNameCache.Get(lineCacheKey)
 	if cacheItem != nil && !cacheItem.IsExpired() {
 		return cacheItem.Value(), nil
@@ -41,7 +41,7 @@ func GetLineDetailsOrCache(lineType string, lineId string) (string, error) {
 	params := url.Values{}
 	params.Add("select", "id_line")
 	params.Add("where",
-		fmt.Sprintf("transportmode=\"%s\" AND name_line=\"%s\" AND (operatorname=\"RATP\" OR operatorname=\"SNCF\")", lineType, lineId))
+		fmt.Sprintf("transportmode=\"%s\" AND name_line=\"%s\" AND %s", lineType, lineId, operatorQuery(operator)))
 
 	resp, err := http.Get(lineRecordsEndpoint + "?" + params.Encode())
 	if err != nil {
@@ -60,7 +60,7 @@ func GetLineDetailsOrCache(lineType string, lineId string) (string, error) {
 	}
 
 	if apiResp.TotalCount == 0 {
-		allLines, err := getAllLines(lineType)
+		allLines, err := getAllLines(lineType, operator)
 		if err != nil {
 			return "", err
 		}
@@ -86,12 +86,12 @@ func GetLineDetailsOrCache(lineType string, lineId string) (string, error) {
 }
 
 // getAllLines retrieves all lines for that type
-func getAllLines(lineType string) (allLinesAPIResponse, error) {
+func getAllLines(lineType string, operator string) (allLinesAPIResponse, error) {
 	// Prepare query parameters
 	params := url.Values{}
 	params.Add("select", "name_line")
 	params.Add("where",
-		fmt.Sprintf("transportmode=\"%s\" AND (operatorname=\"RATP\" OR operatorname=\"SNCF\")", lineType))
+		fmt.Sprintf("transportmode=\"%s\" AND %s", lineType, operatorQuery(operator)))
 	params.Add("limit", "100")
 
 	resp, err := http.Get(lineRecordsEndpoint + "?" + params.Encode())
@@ -111,4 +111,14 @@ func getAllLines(lineType string) (allLinesAPIResponse, error) {
 	}
 
 	return apiResp, nil
+}
+
+func operatorQuery(operator string) string {
+	var operatorQuery string
+	if operator != "" {
+		operatorQuery = fmt.Sprintf("operatorname=\"%s\"", operator)
+	} else {
+		operatorQuery = "(operatorname=\"RATP\" OR operatorname=\"SNCF\")"
+	}
+	return operatorQuery
 }
