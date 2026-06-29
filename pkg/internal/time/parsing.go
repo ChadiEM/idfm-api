@@ -38,18 +38,46 @@ func FindResults(entries []MonitoredStopVisit, lineId string, stopIds []utils.St
 			// Check Direction
 			dirRefValue := entry.MonitoredVehicleJourney.DirectionRef.Value
 			var dir string
-			if dirRefValue == "Aller" {
-				dir = "A"
-			} else if dirRefValue == "Retour" {
-				dir = "R"
-			} else if strings.HasSuffix(dirRefValue, ":A") {
+
+			// Unambiguous explicit suffixes take highest priority
+			if strings.HasSuffix(dirRefValue, ":A") {
 				dir = "A"
 			} else if strings.HasSuffix(dirRefValue, ":R") {
 				dir = "R"
-			} else if len(entry.MonitoredVehicleJourney.DirectionName) > 0 && entry.MonitoredVehicleJourney.DirectionName[0].Value == "Aller" {
-				dir = "A"
-			} else if len(entry.MonitoredVehicleJourney.DirectionName) > 0 && entry.MonitoredVehicleJourney.DirectionName[0].Value == "Retour" {
-				dir = "R"
+			} else {
+				// For rail services (RER/Transilien), DirectionRef is always "Aller" for every
+				// train regardless of travel direction. Use mission number parity instead:
+				//   even last digit → ascending / eastbound / toward Paris  (A)
+				//   odd  last digit → descending / westbound / away from Paris (R)
+				if names := entry.MonitoredVehicleJourney.VehicleJourneyName; len(names) > 0 {
+					if name := names[0].Value; len(name) > 0 {
+						if last := name[len(name)-1]; last >= '0' && last <= '9' {
+							if (last-'0')%2 == 0 {
+								dir = "A"
+							} else {
+								dir = "R"
+							}
+						}
+					}
+				}
+				// Fall back to text-based direction when parity is not applicable (buses, tram)
+				if dir == "" {
+					switch dirRefValue {
+					case "Aller":
+						dir = "A"
+					case "Retour":
+						dir = "R"
+					default:
+						if len(entry.MonitoredVehicleJourney.DirectionName) > 0 {
+							switch entry.MonitoredVehicleJourney.DirectionName[0].Value {
+							case "Aller":
+								dir = "A"
+							case "Retour":
+								dir = "R"
+							}
+						}
+					}
+				}
 			}
 
 			if destination != "" && destination != dir {
